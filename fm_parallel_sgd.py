@@ -165,8 +165,8 @@ def trainFM_parallel_sgd (sc, data, iterations=50, iter_sgd= 5, alpha=0.01, regP
 	    train, val = data.randomSplit([0.8,0.2])
 	    train.persist(StorageLevel.MEMORY_ONLY_SER)
 	    val.persist(StorageLevel.MEMORY_ONLY_SER)
-	    train.cache()
-	    val.cache()
+	    #train.cache()
+	    #val.cache()
     else:
     	train = data.persist(StorageLevel.MEMORY_ONLY_SER)
     	train= data.cache()
