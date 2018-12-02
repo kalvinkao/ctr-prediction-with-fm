@@ -7,7 +7,6 @@ test program for calculating FM predicted value and gradient for three parameter
 import numpy as np
 from pyspark.ml.feature import CountVectorizer
 
-
 def predictCTR(pair):
     """
         Compute the predicted probability AND return the gradient (?)
@@ -22,29 +21,34 @@ def predictCTR(pair):
             predRDD - pair of ([label, predicted probability], feature set)
     """
     
+    feats = pair[1]
+    
     # start with linear weight dot product
     linear_sum = 0.0
-    for i in pair[1].indices:
-        linear_sum += w[i]*pair[1].values[i]
+    for i in feats.indices:
+        i = int(i)
+        linear_sum += w_br.value[i]*feats[i]
 
     # factor matrix interaction sum
     factor_sum = 0.0
     lh_factor = 0.0
     rh_factor = 0.0
     
-    for f in range(0, k):
+    for f in range(0, k_br.value):
         
-        for i in pair[1].indices:
-            lh_factor += V[i][f]*pair[1].values[i]
-            rh_factor += (V[i][f]**2) * (pair[1].values[i]**2)
+        for i in feats.indices:
+            i = int(i)
+            lh_factor += V_br.value[i][f]*feats[i]
+            rh_factor += (V_br.value[i][f]**2) * (feats[i]**2)
         
         factor_sum += (lh_factor**2 - rh_factor)
     factor_sum = 0.5 * factor_sum
     
-    pred = b + linear_sum + factor_sum
+    preProb = b_br.value + linear_sum + factor_sum
     
-    return ([pair[0], pred], pair[1])
-
+    prob = 1.0 / (1 + np.exp(-preProb))
+    
+    return (pair[0], prob)
 
 
 def SGD_update(pair):
@@ -59,3 +63,5 @@ def SGD_update(pair):
         Returns:
             gradient - ???
     """
+    pass
+
