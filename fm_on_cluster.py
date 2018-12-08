@@ -31,13 +31,19 @@ spark = SparkSession\
         .getOrCreate()
 sc = spark.sparkContext
 
+# define working directories
+#dataFolder = "gs://w261_jpalcckk/data/"
+dataFolder = "data/"
+#resultsFolder = "gs://w261_jpalcckk/results/"
+resultsFolder = "results/"
+
 # load .txt data here
 # will look something like this:
 #trainRDD = sc.textFile('gs://w261bucket/train.txt')
-trainRDD = sc.textFile('data/train.txt')
+fullRDD = sc.textFile(dataFolder+'train.txt')
 
 #break the trainfile into pieces to have a holdout set
-excludeRDD, TestRDD, TrainRDD = trainRDD.randomSplit([0.999, 0.0005, 0.0005], seed = 1)
+excludeRDD, TestRDD, TrainRDD = fullRDD.randomSplit([0.999, 0.0005, 0.0005], seed = 1)
 TrainRDD.cache()
 TestRDD.cache()
 
@@ -281,14 +287,16 @@ print(f'Performed {nIter} iterations in {time.time() - start} seconds')
 ##########################################################################################################################################
 #write weights to file
 ##########################################################################################################################################
-np.savetxt("w_weights.txt", w_br.value, delimiter=',')
-np.savetxt("V_weights.txt", V_br.value, delimiter=',')
+np.savetxt(resultsFolder+"w_weights.txt", w_br.value, delimiter=',')
+np.savetxt(resultsFolder+"V_weights.txt", V_br.value, delimiter=',')
 
-file = open("beta.txt", "w")
+file = open(resultsFolder+"beta.txt", "w")
 file.write(str(b_br.value))
 file.close()
 
-
+with open(resultsFolder+'train_loss.txt', 'w') as f:
+    for item in losses:
+        f.write("%s\t" % item)
 ##########################################################################################################################################
 #make predictions on holdout (labeled) set
 ##########################################################################################################################################
@@ -356,12 +364,15 @@ testLoss = vectorizedTestRDD.map(lambda x: predict_prob(x, k_br, b_br, w_br, V_b
 
 print("Log-loss on the hold-out test set is:", testLoss)
 
+# save test loss to file
+with open(resultsFolder+'test_loss.txt', 'w') as f:
+    f.write(str(testLoss))
 
 ##########################################################################################################################################
 #make predictions on unlabeled 'test.txt' dataset
 ##########################################################################################################################################
 
-unlabeledRDD = sc.textFile('data/test.txt')
+unlabeledRDD = sc.textFile(dataFolder+'test.txt')
 largeUnlabeledRDD, smallUnlabeledRDD = unlabeledRDD.randomSplit([0.999, 0.001], seed = 1)
 smallUnlabeledRDD.cache()
 
@@ -372,5 +383,6 @@ vectorUnlabeledRDD = vectorUnlabeledDF.select(['raw','features']).rdd.cache()
 
 unlabeledPred = vectorUnlabeledRDD.map(lambda x: predict_prob(x, k_br, b_br, w_br, V_br)).cache()
 
-unlabeledPred.coalesce(1,True).saveAsTextFile("data/test_predictions")
+predsTimeStamp = str(int(np.floor(time.time())))
+unlabeledPred.coalesce(1,True).saveAsTextFile(resultsFolder+"test_predictions_"+predsTimeStamp)
 
