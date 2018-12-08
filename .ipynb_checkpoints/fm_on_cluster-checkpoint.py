@@ -8,7 +8,8 @@ Evaluate loss on a validation set (with labels)
 [Make predictions on test.txt and save to file? DO LAST]
 """
 
-############################################################################################################################################Prep 
+###########################################################################################################################################
+#Prep 
 ##########################################################################################################################################
 # import packages here
 import time
@@ -36,15 +37,13 @@ sc = spark.sparkContext
 trainRDD = sc.textFile('data/train.txt')
 
 #break the trainfile into pieces to have a holdout set
-largeRDD, smallTestRDD, smallTrainRDD = trainRDD.randomSplit([0.99, 0.005, 0.005], seed = 1)
-smallTrainRDD.cache()
-smallTestRDD.cache()
+0.00075+0.00025+0.999
+excludeRDD, TestRDD, TrainRDD = trainRDD.randomSplit([0.999, 0.0005, 0.0005], seed = 1)
+TrainRDD.cache()
+TestRDD.cache()
 
-###################################################################################################################################
-#Normalize
-##################################################################################################################################
 # function to parse raw data and tag feature values with type and feature indices
-def parseCV_dimension_reduction(line):
+def parseCV(line):
     """
     Map record_csv_string --> (label, features)
     """
@@ -122,39 +121,11 @@ def parseCV_dimension_reduction(line):
 
     return Row(label=label, raw=numericals + categories)
 
-smallTrainRDD = smallTrainRDD.map(parseCV_dimension_reduction)
-
-# function to parse raw data and tag feature values with type and feature indices
-def parseCV(line):
-    """
-    Map record_csv_string --> (label, features)
-    """
-
-    # start of categorical features
-    col_start = 14
-    
-    raw_values = line.split('\t')
-    label = int(raw_values[0])
-    
-    # parse numeric features
-    numericals = []
-    for idx, value in enumerate(raw_values[1:col_start]):
-        if value != '':
-            numericals.append('n' + str(idx) + '_' + str(value))
-            
-    # parse categorical features
-    categories = []
-    for idx, value in enumerate(raw_values[col_start:]):
-        if value != '':
-            categories.append('c'+ str(idx) + '_' + str(value))
-
-    return Row(label=label, raw=numericals + categories)
-
 # function to one hot encode all features using a count vectorizer
 def vectorizeCV(DF):
     
     vectorizer = CountVectorizer()
-    cv = CountVectorizer(minDF=.001, inputCol="raw", outputCol="features")
+    cv = CountVectorizer(minDF=.0001, inputCol="raw", outputCol="features")
     
     model = cv.fit(DF)
     result = model.transform(DF)
@@ -162,8 +133,10 @@ def vectorizeCV(DF):
     return result, model
 
 # call functions
-parsedDF = smallTrainRDD.map(parseCV).toDF().cache()
+parsedDF = TrainRDD.map(parseCV).toDF().cache()
 vectorizedDF, cvModel = vectorizeCV(parsedDF)
+cvModel.save("cvModel")
+
 #convert back to RDDs
 vectorizedRDD = vectorizedDF.select(['label', 'features']).rdd.cache()
 
@@ -326,7 +299,8 @@ start = time.time()
 losses, b_br, w_br, V_br = iterateSGD(vectorizedRDD, k, b, w, V, nIter, learningRate = 0.1, useReg = False)
 print(f'Performed {nIter} iterations in {time.time() - start} seconds')
 
-###########################################################################################################################################write weights to file
+##########################################################################################################################################
+#write weights to file
 ##########################################################################################################################################
 np.savetxt("w_weights.txt", w_br.value, delimiter=',')
 np.savetxt("V_weights.txt", V_br.value, delimiter=',')
@@ -338,10 +312,10 @@ file.close()
 test_V = np.loadtxt("V_weights.txt", delimiter=',')
 test_V.shape
 
-###########################################################################################################################################make predictions on holdout (labeled) set
 ##########################################################################################################################################
-smallTestRDD = smallTestRDD.map(parseCV_dimension_reduction)
-parsedTestDF = smallTestRDD.map(parseCV).toDF().cache()
+#make predictions on holdout (labeled) set
+##########################################################################################################################################
+parsedTestDF = TestRDD.map(parseCV).toDF().cache()
 vectorizedTestDF = cvModel.transform(parsedTestDF)
 vectorizedTestRDD = vectorizedTestDF.select(['label', 'features']).rdd.cache()
 
@@ -382,8 +356,6 @@ def predict_prob(pair, k_br, b_br, w_br, V_br):
     
     return (label, prob)
 
-loss_tester = predict_prob(tester, k_br, b_br, w_br, V_br)
-
 def testLoss(pair):
     """parallelize log loss
         input: (label, prob)
@@ -400,8 +372,8 @@ def testLoss(pair):
     
     return -(y * np.log(y_hat) + (1-y) * np.log(1-y_hat))
 
-testLoss(loss_tester)
 
+tester = vectorizedTestRDD.take(1)[0]
 k_br = sc.broadcast(k)
 
 testLoss = vectorizedTestRDD.map(lambda x: predict_prob(x, k_br, b_br, w_br, V_br)) \
