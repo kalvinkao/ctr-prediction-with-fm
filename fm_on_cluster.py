@@ -37,7 +37,6 @@ sc = spark.sparkContext
 trainRDD = sc.textFile('data/train.txt')
 
 #break the trainfile into pieces to have a holdout set
-0.00075+0.00025+0.999
 excludeRDD, TestRDD, TrainRDD = trainRDD.randomSplit([0.999, 0.0005, 0.0005], seed = 1)
 TrainRDD.cache()
 TestRDD.cache()
@@ -135,13 +134,13 @@ def vectorizeCV(DF):
 # call functions
 parsedDF = TrainRDD.map(parseCV).toDF().cache()
 vectorizedDF, cvModel = vectorizeCV(parsedDF)
-cvModel.save("cvModel")
+#cvModel.save("cvModel")
 
 #convert back to RDDs
 vectorizedRDD = vectorizedDF.select(['label', 'features']).rdd.cache()
 
 num_feats = vectorizedRDD.take(1)[0][1].size
-percent_pos = vectorizedRDD.map(lambda x: x[0]).mean()
+#percent_pos = vectorizedRDD.map(lambda x: x[0]).mean()
 
 ############################################################################################################################################Build Model & store losses
 ##########################################################################################################################################
@@ -184,18 +183,9 @@ def predict_grad(pair, k_br, b_br, w_br, V_br):
     #compute Gradients
     b_grad = prob - label
     
-    #w_grad = csr_matrix((b_grad*feats.values, feats.indices, np.array([0, feats.indices.size])), (1, w_br.value.shape[1]))
     w_grad = csr_matrix((b_grad*feats.values, (np.zeros(feats.indices.size), feats.indices)), shape=(1, w_br.value.shape[1]))
-    #print(w_grad)
     
-    # OLD
-    #v_grad = csr_matrix((V_br.value.shape[0], V_br.value.shape[1]))
-    #for f in range(0, k_br.value):
-    #    for i in feats.indices:
-    #        i = int(i)
-    #        v_grad[(f,i)] = b_grad * (feats[i]*lh_factor[f] - V_br.value[f][i]*(feats[i]**2))
-    
-    # V test
+    # V matrix
     v_data = np.array([], dtype=np.float32)
     v_rows = np.array([], dtype=int)
     v_cols = np.array([], dtype=int)
@@ -232,8 +222,9 @@ def logLoss(pair):
         y_hat = pair[0][1]
     
     return -(y * np.log(y_hat) + (1-y) * np.log(1-y_hat))
-def iterateSGD(dataRDD, k, bInit, wInit, vInit, nIter = 2, learningRate = 0.1, useReg = False, regParam = 0.001):
 
+def iterateSGD(dataRDD, k, bInit, wInit, vInit, nIter = 2, learningRate = 0.1, useReg = False, regParam = 0.001):
+    """iterate over vectorized RDD to update weight vectors and bias with option of regularization"""
     k_br = sc.broadcast(k)    
     b_br = sc.broadcast(bInit)
     w_br = sc.broadcast(wInit)
@@ -255,27 +246,15 @@ def iterateSGD(dataRDD, k, bInit, wInit, vInit, nIter = 2, learningRate = 0.1, u
         # NEW reduce step
         gradRDD = predRDD.values().reduce(reduceFct)
         bGrad = gradRDD[0]/N
-        #print(bGrad)
         wGrad = gradRDD[1]/N
         vGrad = gradRDD[2]/N
 
-        # calculate average gradient for b
-        #bGrad = predRDD.map(lambda x: x[1][0]).mean()
         print(f"Bias: {bGrad}")
-
-        # calculate average gradient for w
-        #wGrad, vGrad = predRDD.map(lambda x: (x[1][1], x[1][2])).reduce(lambda a,b: a+b)
-        
-        #wGrad = (1/N) * predRDD.map(lambda x: x[1][1]).reduce(lambda a,b: a+b)
         print(f"wGrad shape: {wGrad.shape}")
-
-        # calculate average gradient for V
-        #vGrad = (1/N) * predRDD.map(lambda x: x[1][2]).reduce(lambda a,b: a+b)
         print(f"vGrad shape: {vGrad.shape}")
 
         ############## update weights ##############
         # first, unpersist broadcasts
-        #predRDD.unpersist()
         b_br.unpersist()
         w_br.unpersist()
         V_br.unpersist()
@@ -296,7 +275,7 @@ V = np.random.normal(0.0, 0.02, (k, num_feats))
 
 nIter = 2
 start = time.time()
-losses, b_br, w_br, V_br = iterateSGD(vectorizedRDD, k, b, w, V, nIter, learningRate = 0.1, useReg = False)
+losses, b_br, w_br, V_br = iterateSGD(vectorizedRDD, k, b, w, V, nIter, learningRate = 0.1, useReg = True)
 print(f'Performed {nIter} iterations in {time.time() - start} seconds')
 
 ##########################################################################################################################################
@@ -309,8 +288,6 @@ file = open("beta.txt", "w")
 file.write(str(b_br.value))
 file.close()
 
-test_V = np.loadtxt("V_weights.txt", delimiter=',')
-test_V.shape
 
 ##########################################################################################################################################
 #make predictions on holdout (labeled) set
@@ -372,11 +349,28 @@ def testLoss(pair):
     
     return -(y * np.log(y_hat) + (1-y) * np.log(1-y_hat))
 
-
-tester = vectorizedTestRDD.take(1)[0]
 k_br = sc.broadcast(k)
 
 testLoss = vectorizedTestRDD.map(lambda x: predict_prob(x, k_br, b_br, w_br, V_br)) \
                             .map(testLoss).mean()
 
 print("Log-loss on the hold-out test set is:", testLoss)
+
+
+##########################################################################################################################################
+#make predictions on unlabeled 'test.txt' dataset
+##########################################################################################################################################
+
+unlabeledRDD = sc.textFile('data/test.txt')
+largeUnlabeledRDD, smallUnlabeledRDD = unlabeledRDD.randomSplit([0.999, 0.001], seed = 1)
+smallUnlabeledRDD.cache()
+
+parsedUnlabeledDF = smallUnlabeledRDD.map(lambda x: "0\t"+x).map(parseCV).toDF().cache()
+vectorUnlabeledDF = cvModel.transform(parsedUnlabeledDF)
+
+vectorUnlabeledRDD = vectorUnlabeledDF.select(['raw','features']).rdd.cache()
+
+unlabeledPred = vectorUnlabeledRDD.map(lambda x: predict_prob(x, k_br, b_br, w_br, V_br)).cache()
+
+unlabeledPred.coalesce(1,True).saveAsTextFile("data/test_predictions")
+
