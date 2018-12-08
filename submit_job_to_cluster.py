@@ -19,7 +19,7 @@ import os
 from google.cloud import storage
 import googleapiclient.discovery
 
-DEFAULT_FILENAME = 'pyspark_sort.py'
+DEFAULT_FILENAME = 'fm_on_cluster.py'
 
 
 def get_default_pyspark_file():
@@ -70,7 +70,7 @@ def create_cluster(dataproc, project, zone, region, cluster_name,
             'gceClusterConfig': {
                 'zoneUri': zone_uri,
                 "metadata": {
-                    "CONDA_PACKAGES": "\"numpy pandas\"",
+                    "CONDA_PACKAGES": "\"numpy pandas scipy\"",
                     "MINICONDA_VARIANT": "3",
                     "MINICONDA_VERSION": "latest"
                 }
