@@ -6,6 +6,8 @@ Train model and store weights and loss to file
 Evaluate loss on a validation set (with labels)
 
 [Make predictions on test.txt and save to file? DO LAST]
+
+KK: set data and results folders and uncomment "call" lines to run on dataproc
 """
 
 ###########################################################################################################################################
@@ -19,6 +21,7 @@ from scipy.sparse import csr_matrix
 from pyspark.sql import Row
 from pyspark.ml.feature import CountVectorizer
 from pyspark.sql import DataFrame
+from subprocess import call
 
 # start Spark Session
 from pyspark.sql import SparkSession
@@ -287,16 +290,21 @@ print(f'Performed {nIter} iterations in {time.time() - start} seconds')
 ##########################################################################################################################################
 #write weights to file
 ##########################################################################################################################################
-np.savetxt(resultsFolder+"w_weights.txt", w_br.value, delimiter=',')
-np.savetxt(resultsFolder+"V_weights.txt", V_br.value, delimiter=',')
+np.savetxt("w_weights.txt", w_br.value, delimiter=',')
+np.savetxt("V_weights.txt", V_br.value, delimiter=',')
 
-file = open(resultsFolder+"beta.txt", "w")
+file = open("beta.txt", "w")
 file.write(str(b_br.value))
 file.close()
 
-with open(resultsFolder+'train_loss.txt', 'w') as f:
+with open('train_loss.txt', 'w') as f:
     for item in losses:
         f.write("%s\t" % item)
+        
+#call(["gsutil","cp","w_weights.txt",resultsFolder])
+#call(["gsutil","cp","V_weights.txt",resultsFolder])
+#call(["gsutil","cp","beta.txt",resultsFolder])
+#call(["gsutil","cp","train_loss.txt",resultsFolder])
 ##########################################################################################################################################
 #make predictions on holdout (labeled) set
 ##########################################################################################################################################
@@ -365,9 +373,10 @@ testLoss = vectorizedTestRDD.map(lambda x: predict_prob(x, k_br, b_br, w_br, V_b
 print("Log-loss on the hold-out test set is:", testLoss)
 
 # save test loss to file
-with open(resultsFolder+'test_loss.txt', 'w') as f:
+with open('test_loss.txt', 'w') as f:
     f.write(str(testLoss))
 
+#call(["gsutil","cp","test_loss.txt",resultsFolder])
 ##########################################################################################################################################
 #make predictions on unlabeled 'test.txt' dataset
 ##########################################################################################################################################
@@ -384,5 +393,7 @@ vectorUnlabeledRDD = vectorUnlabeledDF.select(['raw','features']).rdd.cache()
 unlabeledPred = vectorUnlabeledRDD.map(lambda x: predict_prob(x, k_br, b_br, w_br, V_br)).cache()
 
 predsTimeStamp = str(int(np.floor(time.time())))
-unlabeledPred.coalesce(1,True).saveAsTextFile(resultsFolder+"test_predictions_"+predsTimeStamp)
+predictionsPath = "test_predictions_"+predsTimeStamp
+unlabeledPred.coalesce(1,True).saveAsTextFile(predictionsPath)
 
+#call(["gsutil","cp","-r",predictionsPath,resultsFolder])
