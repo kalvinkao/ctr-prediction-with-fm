@@ -15,12 +15,15 @@ KK: set data and results folders and uncomment "call" lines to run on dataproc
 ##########################################################################################################################################
 # import packages here
 import time
+import csv
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 from pyspark.sql import Row
 from pyspark.ml.feature import CountVectorizer
 from pyspark.sql import DataFrame
+
+# library for calling the gsutil command:
 from subprocess import call
 
 # start Spark Session
@@ -390,10 +393,15 @@ vectorUnlabeledDF = cvModel.transform(parsedUnlabeledDF)
 
 vectorUnlabeledRDD = vectorUnlabeledDF.select(['raw','features']).rdd.cache()
 
-unlabeledPred = vectorUnlabeledRDD.map(lambda x: predict_prob(x, k_br, b_br, w_br, V_br)).cache()
+unlabeledPred = vectorUnlabeledRDD.map(lambda x: predict_prob(x, k_br, b_br, w_br, V_br)).coalesce(1,True).collect()#cache()
 
-predsTimeStamp = str(int(np.floor(time.time())))
-predictionsPath = "test_predictions_"+predsTimeStamp
-unlabeledPred.coalesce(1,True).saveAsTextFile(predictionsPath)
+#predsTimeStamp = str(int(np.floor(time.time())))
+#predictionsPath = "test_predictions_"+predsTimeStamp
+#unlabeledPred.coalesce(1,True).saveAsTextFile(predictionsPath)
 
-#call(["gsutil","cp","-r",predictionsPath,resultsFolder])
+with open("test_predictions.csv", 'w', newline='') as myfile:
+    wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+    for row in unlabeledPred:
+        wr.writerow(row)
+
+#call(["gsutil","cp","-r","test_predictions.csv",resultsFolder])
