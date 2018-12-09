@@ -50,8 +50,8 @@ fullRDD = sc.textFile(dataFolder+'train.txt')
 
 #break the trainfile into pieces to have a holdout set
 excludeRDD, TestRDD, TrainRDD = fullRDD.randomSplit([0.999, 0.0005, 0.0005], seed = 1)
-TrainRDD.cache()
-TestRDD.cache()
+#TrainRDD.cache()
+#TestRDD.cache()
 
 # function to parse raw data and tag feature values with type and feature indices
 def parseCV(line):
@@ -144,7 +144,7 @@ def vectorizeCV(DF):
     return result, model
 
 # call functions
-parsedDF = TrainRDD.map(parseCV).toDF().cache()
+parsedDF = TrainRDD.map(parseCV).toDF()
 vectorizedDF, cvModel = vectorizeCV(parsedDF)
 #cvModel.save("cvModel")
 
@@ -155,7 +155,7 @@ num_feats = vectorizedRDD.take(1)[0][1].size
 file = open("num_feats.txt", "w")
 file.write(str(num_feats))
 file.close()
-call(["gsutil","cp","num_feats.txt",resultsFolder])
+#call(["gsutil","cp","num_feats.txt",resultsFolder])
 
 #percent_pos = vectorizedRDD.map(lambda x: x[0]).mean()
 
@@ -251,12 +251,13 @@ def iterateSGD(dataRDD, k, bInit, wInit, vInit, nIter = 2, learningRate = 0.1, u
     N = dataRDD.count()
 
     for i in range(0, nIter):
-        print('-' * 25 + 'Iteration ' + str(i) + '-' * 25)
+        print('-' * 25 + 'Iteration ' + str(i+1) + '-' * 25)
         predRDD = dataRDD.map(lambda x: predict_grad(x, k_br, b_br, w_br, V_br)).cache()
         #print(predRDD.take(1))
         
         loss = predRDD.map(logLoss).reduce(lambda a,b: a+b)/N + \
                 int(useReg)*(regParam/2)*(np.linalg.norm(w_br.value)**2 + np.linalg.norm(V_br.value)**2)
+        
         losses.append(loss)
         print(f'Current log-loss: {loss}')
         
@@ -272,6 +273,7 @@ def iterateSGD(dataRDD, k, bInit, wInit, vInit, nIter = 2, learningRate = 0.1, u
 
         ############## update weights ##############
         # first, unpersist broadcasts
+        predRDD.unpersist()
         b_br.unpersist()
         w_br.unpersist()
         V_br.unpersist()
@@ -313,12 +315,11 @@ with open('train_loss.txt', 'w') as f:
 #call(["gsutil","cp","V_weights.txt",resultsFolder])
 #call(["gsutil","cp","beta.txt",resultsFolder])
 #call(["gsutil","cp","train_loss.txt",resultsFolder])
+
+
 ##########################################################################################################################################
 #make predictions on holdout (labeled) set
 ##########################################################################################################################################
-parsedTestDF = TestRDD.map(parseCV).toDF().cache()
-vectorizedTestDF = cvModel.transform(parsedTestDF)
-vectorizedTestRDD = vectorizedTestDF.select(['label', 'features']).rdd.cache()
 
 def predict_prob(pair, k_br, b_br, w_br, V_br):
     """
@@ -373,9 +374,11 @@ def testLoss(pair):
     
     return -(y * np.log(y_hat) + (1-y) * np.log(1-y_hat))
 
-k_br = sc.broadcast(k)
 
-testLoss = vectorizedTestRDD.map(lambda x: predict_prob(x, k_br, b_br, w_br, V_br)) \
+k_br = sc.broadcast(k)
+parsedTestDF = TestRDD.map(parseCV).toDF()
+vectorizedTestDF = cvModel.transform(parsedTestDF)
+testLoss = vectorizedTestDF.select(['label', 'features']).rdd.map(lambda x: predict_prob(x, k_br, b_br, w_br, V_br)) \
                             .map(testLoss).mean()
 
 print("Log-loss on the hold-out test set is:", testLoss)
@@ -391,14 +394,15 @@ with open('test_loss.txt', 'w') as f:
 
 unlabeledRDD = sc.textFile(dataFolder+'test.txt')
 largeUnlabeledRDD, smallUnlabeledRDD = unlabeledRDD.randomSplit([0.999, 0.001], seed = 1)
-smallUnlabeledRDD.cache()
+#smallUnlabeledRDD.cache()
 
-parsedUnlabeledDF = smallUnlabeledRDD.map(lambda x: "0\t"+x).map(parseCV).toDF().cache()
+parsedUnlabeledDF = smallUnlabeledRDD.map(lambda x: "0\t"+x).map(parseCV).toDF()
 vectorUnlabeledDF = cvModel.transform(parsedUnlabeledDF)
 
-vectorUnlabeledRDD = vectorUnlabeledDF.select(['raw','features']).rdd.cache()
+unlabeledPred = vectorUnlabeledDF.select(['raw','features']).rdd \
+                                    .map(lambda x: predict_prob(x, k_br, b_br, w_br, V_br)).coalesce(1,True).collect()
 
-unlabeledPred = vectorUnlabeledRDD.map(lambda x: predict_prob(x, k_br, b_br, w_br, V_br)).coalesce(1,True).collect()#cache()
+#unlabeledPred = vectorUnlabeledRDD.map(lambda x: predict_prob(x, k_br, b_br, w_br, V_br)).coalesce(1,True).collect()
 
 #predsTimeStamp = str(int(np.floor(time.time())))
 #predictionsPath = "test_predictions_"+predsTimeStamp
