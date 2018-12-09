@@ -136,7 +136,7 @@ def parseCV(line):
 def vectorizeCV(DF):
     
     vectorizer = CountVectorizer()
-    cv = CountVectorizer(minDF=.0001, inputCol="raw", outputCol="features")
+    cv = CountVectorizer(minDF=.0001, inputCol="raw", outputCol="features", binary=True)
     
     model = cv.fit(DF)
     result = model.transform(DF)
