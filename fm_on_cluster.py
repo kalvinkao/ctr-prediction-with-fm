@@ -297,6 +297,8 @@ start = time.time()
 losses, b_br, w_br, V_br = iterateSGD(vectorizedRDD, k, b, w, V, nIter, learningRate = 0.1, useReg = True)
 print(f'Performed {nIter} iterations in {time.time() - start} seconds')
 
+vectorizedRDD.unpersist()
+
 ##########################################################################################################################################
 #write weights to file
 ##########################################################################################################################################
