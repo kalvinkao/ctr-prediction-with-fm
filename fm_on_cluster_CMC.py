@@ -64,7 +64,7 @@ sampleFeats = 1
 minDocFrec = 1
 scoreTest = 0.1
 randSeed = 24
-useReg = True
+useReg = False
 nIter = 30
 k = 2
 
