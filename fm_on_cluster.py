@@ -152,6 +152,11 @@ vectorizedDF, cvModel = vectorizeCV(parsedDF)
 vectorizedRDD = vectorizedDF.select(['label', 'features']).rdd.cache()
 
 num_feats = vectorizedRDD.take(1)[0][1].size
+file = open("num_feats.txt", "w")
+file.write(str(num_feats))
+file.close()
+call(["gsutil","cp","num_feats.txt",resultsFolder])
+
 #percent_pos = vectorizedRDD.map(lambda x: x[0]).mean()
 
 ############################################################################################################################################Build Model & store losses
