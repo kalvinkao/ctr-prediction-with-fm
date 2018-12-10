@@ -41,9 +41,9 @@ sc = spark.sparkContext
 print(sc.getConf().getAll())
 
 # define working directories
-dataFolder = "gs://w261_jpalcckk/data/"
+dataFolder = "gs://w261_jpalcckk/data/"#USE SAME FORMAT
 #dataFolder = "data/"
-resultsFolder = "gs://w261_jpalcckk/results/"
+resultsFolder = "gs://w261_jpalcckk/results/"#USE SAME FORMAT OR ELSE MODEL SAVE WILL NOT WORK
 #resultsFolder = "results/"
 
 # load .txt data here
@@ -254,6 +254,11 @@ def iterateSGD(dataRDD, k, bInit, wInit, vInit, nIter = 2, learningRate = 0.1, u
 
     losses = []
     N = dataRDD.count()
+    # NEW BELOW
+    file = open("num_users.txt", "w")
+    file.write(str(N))
+    file.close()
+    call(["gsutil","cp","num_users.txt",resultsFolder])
 
     for i in range(0, nIter):
         print('-' * 25 + 'Iteration ' + str(i+1) + '-' * 25)
@@ -299,7 +304,7 @@ V = np.random.normal(0.0, 0.02, (k, num_feats))
 
 nIter = 1
 start = time.time()
-losses, b_br, w_br, V_br = iterateSGD(vectorizedRDD, k, b, w, V, nIter, learningRate = 0.1, useReg = True)
+losses, b_br, w_br, V_br = iterateSGD(vectorizedRDD, k, b, w, V, nIter, learningRate = 0.1, useReg = False)
 print(f'Performed {nIter} iterations in {time.time() - start} seconds')
 
 vectorizedRDD.unpersist()
@@ -421,3 +426,6 @@ with open("test_predictions.csv", 'w', newline='') as myfile:
         wr.writerow(row)
 
 call(["gsutil","cp","-r","test_predictions.csv",resultsFolder])
+
+cvModel.save("cvModel")
+call(["gsutil","cp","-r","./cvModel/*",resultsFolder+"model/"])
