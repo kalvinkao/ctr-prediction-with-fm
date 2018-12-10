@@ -58,7 +58,7 @@ def download_output(project_id, cluster_id, output_bucket, job_id):
 
 # [START create_cluster]
 def create_cluster(dataproc, project, zone, region, cluster_name,
-                   instance_type, master_nodes, worker_nodes):
+                   instance_type_m, instance_type_w, master_nodes, worker_nodes):
     print('Creating cluster...')
     zone_uri = \
         'https://www.googleapis.com/compute/v1/projects/{}/zones/{}'.format(
@@ -84,11 +84,11 @@ def create_cluster(dataproc, project, zone, region, cluster_name,
             },
             'masterConfig': {
                 'numInstances': master_nodes,
-                'machineTypeUri': instance_type
+                'machineTypeUri': instance_type_m
             },
             'workerConfig': {
                 'numInstances': worker_nodes,
-                'machineTypeUri': instance_type
+                'machineTypeUri': instance_type_w
             },
             "initializationActions": [
                 {
@@ -210,7 +210,8 @@ def get_client():
 
 
 def main(project_id, zone, cluster_name, bucket_name,
-         instance_type, master_nodes, worker_nodes,
+         instance_type_m, instance_type_w,
+         master_nodes, worker_nodes,
          pyspark_file=None, create_new_cluster=True):
     dataproc = get_client()
     region = 'global'
@@ -223,7 +224,7 @@ def main(project_id, zone, cluster_name, bucket_name,
         if create_new_cluster:
             create_cluster(
                 dataproc, project_id, zone, region, cluster_name,
-                instance_type, master_nodes, worker_nodes)
+                instance_type_m, instance_type_w, master_nodes, worker_nodes)
             wait_for_cluster_creation(
                 dataproc, project_id, region, cluster_name)
 
@@ -291,8 +292,13 @@ if __name__ == '__main__':
             help='Location of your key file for service account'
         )
     parser.add_argument(
-            '--instance_type',
-            help='Instance types used for this cluster',
+            '--instance_type_m',
+            help='Instance type used for master in this cluster',
+            default='n1-standard-4'
+        )
+    parser.add_argument(
+            '--instance_type_w',
+            help='Instance types used for workers this cluster',
             default='n1-standard-4'
         )
     parser.add_argument(
@@ -313,5 +319,6 @@ if __name__ == '__main__':
 
     main(
         args.project_id, args.zone, args.cluster_name,
-        args.gcs_bucket, args.instance_type, args.master_nodes, args.worker_nodes,
+        args.gcs_bucket, args.instance_type_m, args.instance_type_w,
+        args.master_nodes, args.worker_nodes,
         args.pyspark_file, args.create_new_cluster)

@@ -7,7 +7,8 @@ Evaluate loss on a validation set (with labels)
 
 [Make predictions on test.txt and save to file? DO LAST]
 
-KK: set data and results folders and uncomment "call" lines to run on dataproc
+KK: set data and results folders to run on dataproc
+    spark session stuff for running locally is commented out
 """
 
 ###########################################################################################################################################
@@ -28,20 +29,22 @@ from subprocess import call
 
 # start Spark Session
 from pyspark.sql import SparkSession
-app_name = "w261FinalProject"
-master = "local[*]"
-spark = SparkSession\
-        .builder\
-        .appName(app_name)\
-        .master(master)\
-        .getOrCreate()
+#app_name = "w261FinalProject"
+#master = "local[*]"
+#spark = SparkSession\
+#        .builder\
+#        .appName(app_name)\
+#        .master(master)\
+#        .getOrCreate()
+spark = SparkSession.builder.getOrCreate()
 sc = spark.sparkContext
+print(sc.getConf().getAll())
 
 # define working directories
-#dataFolder = "gs://w261_jpalcckk/data/"
-dataFolder = "data/"
-#resultsFolder = "gs://w261_jpalcckk/results/"
-resultsFolder = "results/"
+dataFolder = "gs://w261_jpalcckk/data/"
+#dataFolder = "data/"
+resultsFolder = "gs://w261_jpalcckk/results/"
+#resultsFolder = "results/"
 
 # load .txt data here
 # will look something like this:
@@ -49,7 +52,8 @@ resultsFolder = "results/"
 fullRDD = sc.textFile(dataFolder+'train.txt')
 
 #break the trainfile into pieces to have a holdout set
-excludeRDD, TestRDD, TrainRDD = fullRDD.randomSplit([0.999, 0.0005, 0.0005], seed = 1)
+#excludeRDD, TestRDD, TrainRDD = fullRDD.randomSplit([0.999, 0.0005, 0.0005], seed = 1)
+TestRDD, TrainRDD = fullRDD.randomSplit([0.2, 0.8], seed = 1)
 #TrainRDD.cache()
 #TestRDD.cache()
 
@@ -136,7 +140,8 @@ def parseCV(line):
 def vectorizeCV(DF):
     
     vectorizer = CountVectorizer()
-    cv = CountVectorizer(minDF=.0001, inputCol="raw", outputCol="features", binary=True)
+    #cv = CountVectorizer(minDF=.0001, inputCol="raw", outputCol="features", binary=True)
+    cv = CountVectorizer(minDF=1, inputCol="raw", outputCol="features", binary=True)
     
     model = cv.fit(DF)
     result = model.transform(DF)
@@ -155,7 +160,7 @@ num_feats = vectorizedRDD.take(1)[0][1].size
 file = open("num_feats.txt", "w")
 file.write(str(num_feats))
 file.close()
-#call(["gsutil","cp","num_feats.txt",resultsFolder])
+call(["gsutil","cp","num_feats.txt",resultsFolder])
 
 #percent_pos = vectorizedRDD.map(lambda x: x[0]).mean()
 
@@ -292,7 +297,7 @@ b = 0.0
 w = np.random.normal(0.0, 0.02, (1, num_feats))
 V = np.random.normal(0.0, 0.02, (k, num_feats))
 
-nIter = 2
+nIter = 1
 start = time.time()
 losses, b_br, w_br, V_br = iterateSGD(vectorizedRDD, k, b, w, V, nIter, learningRate = 0.1, useReg = True)
 print(f'Performed {nIter} iterations in {time.time() - start} seconds')
@@ -313,10 +318,10 @@ with open('train_loss.txt', 'w') as f:
     for item in losses:
         f.write("%s\t" % item)
         
-#call(["gsutil","cp","w_weights.txt",resultsFolder])
-#call(["gsutil","cp","V_weights.txt",resultsFolder])
-#call(["gsutil","cp","beta.txt",resultsFolder])
-#call(["gsutil","cp","train_loss.txt",resultsFolder])
+call(["gsutil","cp","w_weights.txt",resultsFolder])
+call(["gsutil","cp","V_weights.txt",resultsFolder])
+call(["gsutil","cp","beta.txt",resultsFolder])
+call(["gsutil","cp","train_loss.txt",resultsFolder])
 
 
 ##########################################################################################################################################
@@ -389,7 +394,7 @@ print("Log-loss on the hold-out test set is:", testLoss)
 with open('test_loss.txt', 'w') as f:
     f.write(str(testLoss))
 
-#call(["gsutil","cp","test_loss.txt",resultsFolder])
+call(["gsutil","cp","test_loss.txt",resultsFolder])
 ##########################################################################################################################################
 #make predictions on unlabeled 'test.txt' dataset
 ##########################################################################################################################################
@@ -415,4 +420,4 @@ with open("test_predictions.csv", 'w', newline='') as myfile:
     for row in unlabeledPred:
         wr.writerow(row)
 
-#call(["gsutil","cp","-r","test_predictions.csv",resultsFolder])
+call(["gsutil","cp","-r","test_predictions.csv",resultsFolder])
