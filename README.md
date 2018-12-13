@@ -3,7 +3,7 @@
 ### The Team:
 - [Colby Carter](https://github.com/colbycarter) (colby.carter@ischool.berkeley.edu)
 - [Adam Letcher](https://github.com/perch333) (adam.letcher@ischool.berkeley.edu)
-- [Jennifer Philippou](https://github.com/jphilippou27)
+- [Jennifer Philippou](https://github.com/jphilippou27) (jennifer.p@ischool.berkeley.edu)
 - [Kalvin Kao](https://github.com/kalvinkao) (kalvin.kao@ischool.berkeley.edu)
 
 ### Report
