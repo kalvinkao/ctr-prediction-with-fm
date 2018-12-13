@@ -1,7 +1,7 @@
 # Click Through Rate (CTR) Prediction using Factorization Machines at Scale
 
 ### The Team:
-- [Colby Carter](https://github.com/colbycarter)
+- [Colby Carter](https://github.com/colbycarter) (colby.carter@ischool.berkeley.edu)
 - [Adam Letcher](https://github.com/perch333) (adam.letcher@ischool.berkeley.edu)
 - [Jennifer Philippou](https://github.com/jphilippou27)
 - [Kalvin Kao](https://github.com/kalvinkao) (kalvin.kao@ischool.berkeley.edu)
