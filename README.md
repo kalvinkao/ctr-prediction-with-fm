@@ -2,21 +2,21 @@
 
 ### The Team:
 - [Colby Carter](https://github.com/colbycarter)
-- [Adam Letcher](https://github.com/perch333)
+- [Adam Letcher](https://github.com/perch333) (adam.letcher@ischool.berkeley.edu)
 - [Jennifer Philippou](https://github.com/jphilippou27)
-- [Kalvin Kao](https://github.com/kalvinkao) / [Contact](kalvin.kao@ischool.berkeley.edu)
+- [Kalvin Kao](https://github.com/kalvinkao) / (kalvin.kao@ischool.berkeley.edu)
 
 ### Report
 This project implements a scalable factorization machines approach for predicting click response to display advertising.  You can clone this repo to view the jupyter notebook, or you can view the PDF version (contains formatting differences) here:
 
-[]
+[PDF Version](https://github.com/kalvinkao/ctr-prediction-with-fm/blob/master/CTR_FactorizationMachines.pdf)
 
 An HTML version is also available here (but may not render due to size):
 
-[]
+[HTML Version](https://github.com/kalvinkao/ctr-prediction-with-fm/blob/master/CarterKaoLetcherPhilippou_w261_FM_CTR.html)
 
 ### Instructions for Use
-The jupyter notebook can be run, and requires a ./data folder containing the test.txt and train.txt files that are available from the link below.
+The jupyter notebook can be run, and requires a ./data folder containing the test.txt and train.txt files that are available from the link below.  If you are using docker, please use the compose file that is also available in this repo.
 
 http://labs.criteo.com/2014/09/kaggle-contest-dataset-now-available-academic-use/
 
@@ -35,4 +35,4 @@ Here is an example job submission:
 
 python submit_job_to_cluster.py --project_id=w261-223519 --zone=us-west1-a --cluster_name=cluster-jpalcckk-test03 --gcs_bucket=w261_jpalcckk --key_file=/home/muthderd/MIDS/w261.json --create_new_cluster --pyspark_file=fm_on_cluster.py --instance_type_m=n1-standard-8 --instance_type_w=n1-standard-4 --worker_nodes=16
 
-Please be aware that you will be charged for submitting a GCP dataproc job!  I hope you find this work interesting or useful-- please send any questions, comments, or criticisms that you have to kalvin.kao@ischool.berkeley.edu.  Our team is always eager to learn and practice more!
+Please be aware that you will be charged for submitting a GCP dataproc job!  Our team hopes you find this work interesting or useful, and please email us any questions, comments, or criticisms that you have-- we are always eager to learn and practice more!
