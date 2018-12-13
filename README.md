@@ -1,3 +1,38 @@
-# W261 Final Project: EDA
+# Click Through Rate (CTR) Prediction using Factorization Machines at Scale
 
-After you pull this down, create a folder "data" in this directory and put the test.txt and train.txt files in there.
+### The Team:
+- [Colby Carter](https://github.com/colbycarter)
+- [Adam Letcher](https://github.com/perch333)
+- [Jennifer Philippou](https://github.com/jphilippou27)
+- [Kalvin Kao](https://github.com/kalvinkao) / [Contact](kalvin.kao@ischool.berkeley.edu)
+
+### Report
+This project implements a scalable factorization machines approach for predicting click response to display advertising.  You can clone this repo to view the jupyter notebook, or you can view the PDF version (contains formatting differences) here:
+
+[]
+
+An HTML version is also available here (but may not render due to size):
+
+[]
+
+### Instructions for Use
+The jupyter notebook can be run, and requires a ./data folder containing the test.txt and train.txt files that are available from the link below.
+
+http://labs.criteo.com/2014/09/kaggle-contest-dataset-now-available-academic-use/
+
+
+'submit_job_to_cluster.py' and 'fm_on_cluster.py' can also be used to submit a GCP dataproc job that runs training at scale, on a cluster.  You may be interested in setting the number of training iterations within 'fm_on_cluster.py'.  The other settings and tunable parameters are described in the report linked above.  Running on a dataproc cluster requires the following:
+
+- Setting up and configuring your GCP account: see [] for instructions on how to do this (the instructions for creating an account apply to MIDS students only).
+- Adding the data (linked above) to a /data folder within a GCP storage bucket.
+- Creating a /results folder within the same GCP storage bucket.
+
+Once your GCP account and storage bucket are ready, modify the two lines in 'fm_on_cluster.py' which point to the /data and /results folders within your bucket.  Then use the following command to submit a training job:
+
+python submit_job_to_cluster.py --project_id=${PROJECT_ID} --zone==${ZONE} --cluster_name==${CLUSTER_NAME} --gcs_bucket=${BUCKET_NAME} --key_file=$HOME/KEYNAME.json --create_new_cluster --pyspark_file=fm_on_cluster.py --instance_type_m=${MASTER_MACHINE_TYPE} --instance_type_w=${WORKER_MACHINE_TYPE} --worker_nodes=${NUM_WORKER_NODES}
+
+Here is an example job submission:
+
+python submit_job_to_cluster.py --project_id=w261-223519 --zone=us-west1-a --cluster_name=cluster-jpalcckk-test03 --gcs_bucket=w261_jpalcckk --key_file=/home/muthderd/MIDS/w261.json --create_new_cluster --pyspark_file=fm_on_cluster.py --instance_type_m=n1-standard-8 --instance_type_w=n1-standard-4 --worker_nodes=16
+
+Please be aware that you will be charged for submitting a GCP dataproc job!  I hope you find this work interesting or useful-- please send any questions, comments, or criticisms that you have to kalvin.kao@ischool.berkeley.edu.  Our team is always eager to learn and practice more!
