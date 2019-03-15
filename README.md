@@ -7,7 +7,7 @@
 - [Kalvin Kao](https://github.com/kalvinkao) (kalvin.kao@ischool.berkeley.edu)
 
 ### Report
-This project implements a scalable factorization machines approach for predicting click response to display advertising.  You can clone this repo to view the jupyter notebook, or you can view the PDF version (contains formatting differences) here:
+This project implements a scalable factorization machines approach for predicting click response to display advertising. The dataset contains ~46 million records and the training data is about ~11GB. You can clone this repo to view the jupyter notebook, or you can view the PDF version (contains formatting differences) here:
 
 [PDF Version](https://github.com/kalvinkao/ctr-prediction-with-fm/blob/master/CTR_FactorizationMachines.pdf)
 
